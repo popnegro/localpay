@@ -28,7 +28,12 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [networkState, setNetworkState] = useState<NetworkSyncState>(dbService.getNetworkSyncState());
   const [qrTimer, setQrTimer] = useState(60);
-  const [ultimoCobro, setUltimoCobro] = useState<{ id: string; monto: number; hora: string; metodo: string } | null>(null);
+  const [ultimoCobro, setUltimoCobro] = useState<{
+    id: string;
+    monto: number;
+    hora: string;
+    metodo: string;
+  } | null>(null);
   const [simulando, setSimulando] = useState(false);
   const qrCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const cajaId = currentUser?.cajaId || 'CAJA-01';
@@ -36,7 +41,9 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
   const playTone = (freq: number, duration = 0.08) => {
     if (!soundEnabled) return;
     try {
-      const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const Ctx =
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       if (!Ctx) return;
       const ctx = new Ctx();
       const osc = ctx.createOscillator();
@@ -70,7 +77,7 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
     const monto = parseInt(numpadValue, 10) || 0;
     const payload = `localpay://pay?amount=${monto}&caja=${cajaId}&ref=TX-${Date.now()}`;
     QRCode.toCanvas(qrCanvasRef.current, payload, {
-      width: 220,
+      width: 200,
       margin: 1,
       color: { dark: '#090d16', light: '#ffffff' },
     });
@@ -162,7 +169,7 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
 
   if (stage === 'scan') {
     return (
-      <div className="h-full min-h-0 flex flex-col bg-slate-950">
+      <div className="h-full w-full min-h-0 flex flex-col bg-slate-950 overflow-hidden">
         <QrCameraScanner onScan={onScan} onClose={() => setStage('pos')} />
       </div>
     );
@@ -170,40 +177,64 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
 
   if (stage === 'qr') {
     return (
-      <div className="h-full flex flex-col bg-slate-900 text-white p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-400 uppercase">Cobro QR</span>
-          <button type="button" onClick={() => setStage('pos')} className="text-slate-400 cursor-pointer">
+      <div className="h-full w-full min-h-0 flex flex-col bg-slate-900 text-white overflow-hidden">
+        <div className="pos-safe-top px-4 pb-2 flex items-center justify-between shrink-0">
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Cobro QR</span>
+          <button
+            type="button"
+            onClick={() => setStage('pos')}
+            className="min-h-11 min-w-11 flex items-center justify-center rounded-xl text-slate-300 hover:bg-slate-800 cursor-pointer"
+            aria-label="Cancelar"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center gap-3">
-          <div className="bg-white text-slate-950 p-4 rounded-3xl">
-            <canvas ref={qrCanvasRef} className="mx-auto block" />
-            <p className="text-center text-2xl font-black font-mono mt-2">
+
+        <div className="flex-1 min-h-0 flex flex-col items-center justify-center gap-4 px-4">
+          <div className="bg-white text-slate-950 p-5 rounded-3xl shadow-xl">
+            <canvas ref={qrCanvasRef} className="mx-auto block max-w-full" />
+            <p className="text-center text-2xl font-black font-mono mt-3 tracking-tight">
               ${Number(numpadValue || 0).toLocaleString('es-AR')}
             </p>
+            <p className="text-center text-[10px] text-slate-500 font-bold uppercase mt-0.5">ARS</p>
           </div>
-          <p className="text-xs text-slate-400 flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-amber-400" /> Expira en {qrTimer}s · {cajaId}
+          <p className="text-xs text-slate-400 flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            Expira en {qrTimer}s · {cajaId}
           </p>
         </div>
-        <div className="space-y-2">
+
+        <div className="pos-safe-bottom px-4 pt-2 space-y-2 shrink-0">
           <button
             type="button"
             onClick={() => setStage('scan')}
-            className="w-full py-3 rounded-xl bg-slate-800 text-emerald-300 font-bold text-xs flex items-center justify-center gap-2 cursor-pointer border border-slate-600"
+            className="w-full min-h-12 rounded-2xl bg-slate-800 text-emerald-300 font-bold text-sm flex items-center justify-center gap-2 cursor-pointer border border-slate-600 active:scale-[0.98]"
           >
             <Camera className="w-4 h-4" /> Escanear QR del cliente
           </button>
-          <div className="grid grid-cols-3 gap-1.5">
-            <button type="button" disabled={simulando} onClick={() => aprobar('Mercado Pago (QR)')} className="py-2.5 bg-blue-600 text-white font-bold text-[11px] rounded-xl cursor-pointer">
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              type="button"
+              disabled={simulando}
+              onClick={() => aprobar('Mercado Pago (QR)')}
+              className="min-h-12 bg-blue-600 text-white font-bold text-xs rounded-2xl cursor-pointer active:scale-[0.98] disabled:opacity-50"
+            >
               Mercado Pago
             </button>
-            <button type="button" disabled={simulando} onClick={() => aprobar('Plex (QR)')} className="py-2.5 bg-violet-600 text-white font-bold text-[11px] rounded-xl cursor-pointer">
+            <button
+              type="button"
+              disabled={simulando}
+              onClick={() => aprobar('Plex (QR)')}
+              className="min-h-12 bg-violet-600 text-white font-bold text-xs rounded-2xl cursor-pointer active:scale-[0.98] disabled:opacity-50"
+            >
               Plex
             </button>
-            <button type="button" disabled={simulando} onClick={() => aprobar('Efectivo')} className="py-2.5 bg-emerald-600 text-white font-bold text-[11px] rounded-xl cursor-pointer">
+            <button
+              type="button"
+              disabled={simulando}
+              onClick={() => aprobar('Efectivo')}
+              className="min-h-12 bg-emerald-600 text-white font-bold text-xs rounded-2xl cursor-pointer active:scale-[0.98] disabled:opacity-50"
+            >
               Efectivo
             </button>
           </div>
@@ -214,131 +245,162 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
 
   if (stage === 'semaforo') {
     return (
-      <div className="h-full flex flex-col bg-emerald-500 text-slate-950 p-5 justify-between">
-        <div className="text-center pt-4">
-          <span className="px-3 py-1 rounded-full bg-slate-950 text-emerald-400 text-xs font-black uppercase">Pago aprobado</span>
+      <div className="h-full w-full min-h-0 flex flex-col bg-emerald-500 text-slate-950 overflow-hidden">
+        <div className="pos-safe-top text-center px-4">
+          <span className="inline-block px-3 py-1.5 rounded-full bg-slate-950 text-emerald-400 text-[11px] font-black uppercase tracking-wide">
+            Pago aprobado
+          </span>
         </div>
-        <div className="text-center space-y-3">
-          <div className="w-24 h-24 mx-auto rounded-full bg-slate-950 text-emerald-400 flex items-center justify-center border-4 border-white/40">
-            <Check className="w-14 h-14 stroke-[3]" />
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 text-center">
+          <div className="w-28 h-28 rounded-full bg-slate-950 text-emerald-400 flex items-center justify-center border-4 border-white/40 shadow-lg">
+            <Check className="w-16 h-16 stroke-[3]" />
           </div>
-          <p className="text-3xl font-black font-mono">${(ultimoCobro?.monto || 0).toLocaleString('es-AR')}</p>
-          <p className="text-xs font-bold text-slate-800">{ultimoCobro?.metodo}</p>
-          <p className="text-[10px] text-slate-700">{ultimoCobro?.id} · {ultimoCobro?.hora}</p>
+          <p className="text-4xl font-black font-mono tracking-tight">
+            ${(ultimoCobro?.monto || 0).toLocaleString('es-AR')}
+          </p>
+          <p className="text-sm font-bold text-slate-800 max-w-[90%] truncate">{ultimoCobro?.metodo}</p>
+          <p className="text-[11px] text-slate-700 font-medium">
+            {ultimoCobro?.id} · {ultimoCobro?.hora}
+          </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setStage('pos');
-            setNumpadValue('0');
-          }}
-          className="w-full py-4 bg-slate-950 text-white font-black rounded-2xl cursor-pointer"
-        >
-          Nuevo cobro
-        </button>
+        <div className="pos-safe-bottom px-4 shrink-0">
+          <button
+            type="button"
+            onClick={() => {
+              setStage('pos');
+              setNumpadValue('0');
+            }}
+            className="w-full min-h-14 bg-slate-950 text-white font-black text-base rounded-2xl cursor-pointer active:scale-[0.98]"
+          >
+            Nuevo cobro
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full min-h-0 flex flex-col bg-slate-100 text-slate-900">
-      <div className="px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2 bg-slate-900 text-white flex items-center justify-between text-xs shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="font-bold">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-          <span className="text-[10px] px-1.5 py-0.5 bg-slate-800 text-emerald-400 rounded font-mono">{cajaId}</span>
+    <div className="h-full w-full min-h-0 flex flex-col bg-slate-100 text-slate-900 overflow-hidden">
+      <header className="pos-safe-top px-4 pb-2.5 bg-slate-900 text-white flex items-center justify-between text-xs shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="font-bold tabular-nums">
+            {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </span>
+          <span className="text-[10px] px-1.5 py-0.5 bg-slate-800 text-emerald-400 rounded font-mono shrink-0">
+            {cajaId}
+          </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3 shrink-0">
           {networkState.isOnline ? (
             <span className="flex items-center gap-1 text-emerald-400 text-[10px] font-bold">
-              <Wifi className="w-3 h-3" /> Online
+              <Wifi className="w-3.5 h-3.5" /> Online
             </span>
           ) : (
             <span className="flex items-center gap-1 text-amber-300 text-[10px] font-bold">
-              <WifiOff className="w-3 h-3" /> Offline
+              <WifiOff className="w-3.5 h-3.5" /> Offline
             </span>
           )}
-          <button type="button" onClick={onLogout} className="text-slate-400 text-[10px] font-bold underline cursor-pointer">
+          <button
+            type="button"
+            onClick={onLogout}
+            className="text-slate-400 text-[10px] font-bold underline cursor-pointer min-h-8 px-1"
+          >
             Salir
           </button>
         </div>
-      </div>
+      </header>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
-        <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
-          <p className="text-[10px] font-bold uppercase text-slate-400">Importe a cobrar</p>
-          <p className="text-4xl font-black font-mono text-slate-950 tracking-tight">
-            ${Number(numpadValue || 0).toLocaleString('es-AR')}
-          </p>
-          <p className="text-xs text-slate-500 mt-1">{concepto} · {currentUser?.name || 'Cajero'}</p>
-        </div>
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+        <div className="px-4 pt-3 pb-2 space-y-3 max-w-md mx-auto w-full">
+          <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm text-center sm:text-left">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Importe a cobrar</p>
+            <p className="text-[2.5rem] leading-none font-black font-mono text-slate-950 tracking-tight mt-1 break-all">
+              ${Number(numpadValue || 0).toLocaleString('es-AR')}
+            </p>
+            <p className="text-xs text-slate-500 mt-2">
+              {concepto} · {currentUser?.name || 'Cajero'}
+            </p>
+          </div>
 
-        <div className="flex gap-2">
-          {[1000, 2000, 5000].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => quickAdd(n)}
-              className="flex-1 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 cursor-pointer"
-            >
-              +${n.toLocaleString('es-AR')}
-            </button>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-3 gap-2">
-          {keys.map((k) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => press(k)}
-              className={`h-14 rounded-2xl font-black text-lg cursor-pointer active:scale-95 transition ${
-                k === 'DEL' || k === 'CLR'
-                  ? 'bg-slate-200 text-slate-700 text-sm'
-                  : 'bg-white border border-slate-200 text-slate-900 shadow-xs'
-              }`}
-            >
-              {k === 'DEL' ? '⌫' : k === 'CLR' ? 'C' : k}
-            </button>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 pt-1">
-          <button
-            type="button"
-            onClick={() => {
-              if ((parseInt(numpadValue, 10) || 0) > 0) {
-                setStage('qr');
-                playTone(740, 0.08);
-              }
-            }}
-            className="h-14 bg-emerald-500 text-slate-950 font-black text-xs rounded-2xl flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-emerald-500/20"
-          >
-            <QrCode className="w-4 h-4" /> Mostrar QR
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setStage('scan');
-              playTone(740, 0.08);
-            }}
-            className="h-14 bg-slate-900 text-white font-black text-xs rounded-2xl border border-emerald-500/40 flex items-center justify-center gap-1.5 cursor-pointer"
-          >
-            <Camera className="w-4 h-4 text-emerald-400" /> Escanear QR
-          </button>
-        </div>
-
-        {transactions.slice(0, 3).length > 0 && (
-          <div className="pt-2 space-y-1.5">
-            <p className="text-[10px] font-bold uppercase text-slate-400">Últimos cobros</p>
-            {transactions.slice(0, 3).map((tx) => (
-              <div key={tx.id} className="flex justify-between text-xs bg-white rounded-xl border border-slate-200 px-3 py-2">
-                <span className="text-slate-600 truncate mr-2">{tx.concepto}</span>
-                <span className="font-mono font-bold text-emerald-600">+${tx.monto.toLocaleString('es-AR')}</span>
-              </div>
+          <div className="grid grid-cols-3 gap-2">
+            {[1000, 2000, 5000].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => quickAdd(n)}
+                className="min-h-11 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 cursor-pointer active:bg-slate-50 active:scale-[0.98]"
+              >
+                +${n.toLocaleString('es-AR')}
+              </button>
             ))}
           </div>
-        )}
+
+          <div className="grid grid-cols-3 gap-2">
+            {keys.map((k) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => press(k)}
+                className={`min-h-14 rounded-2xl font-black text-xl cursor-pointer active:scale-[0.96] transition select-none ${
+                  k === 'DEL' || k === 'CLR'
+                    ? 'bg-slate-200 text-slate-700 text-base'
+                    : 'bg-white border border-slate-200 text-slate-900 shadow-sm'
+                }`}
+              >
+                {k === 'DEL' ? '⌫' : k === 'CLR' ? 'C' : k}
+              </button>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => {
+                if ((parseInt(numpadValue, 10) || 0) > 0) {
+                  setStage('qr');
+                  playTone(740, 0.08);
+                }
+              }}
+              className="min-h-14 bg-emerald-500 text-slate-950 font-black text-sm rounded-2xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/25 active:scale-[0.98]"
+            >
+              <QrCode className="w-5 h-5 shrink-0" />
+              <span>Mostrar QR</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStage('scan');
+                playTone(740, 0.08);
+              }}
+              className="min-h-14 bg-slate-900 text-white font-black text-sm rounded-2xl border border-emerald-500/40 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+            >
+              <Camera className="w-5 h-5 shrink-0 text-emerald-400" />
+              <span>Escanear</span>
+            </button>
+          </div>
+
+          {transactions.slice(0, 3).length > 0 && (
+            <div className="pt-1 pb-2 space-y-1.5">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-0.5">
+                Últimos cobros
+              </p>
+              {transactions.slice(0, 3).map((tx) => (
+                <div
+                  key={tx.id}
+                  className="flex justify-between items-center gap-2 text-xs bg-white rounded-xl border border-slate-200 px-3 py-2.5"
+                >
+                  <span className="text-slate-600 truncate min-w-0">{tx.concepto}</span>
+                  <span className="font-mono font-bold text-emerald-600 shrink-0">
+                    +${tx.monto.toLocaleString('es-AR')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
+
+      <div className="pos-safe-bottom shrink-0" />
     </div>
   );
 };
