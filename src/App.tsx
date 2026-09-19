@@ -9,18 +9,51 @@ import { CloudSyncWebhooksTab } from './components/cloud/CloudSyncWebhooksTab';
 import { authService, AuthUser } from './services/authService';
 import { Check } from 'lucide-react';
 
+function resolveInitialTab(): string {
+  if (typeof window === 'undefined') return 'app-mobile';
+  const params = new URLSearchParams(window.location.search);
+  const view = (params.get('view') || params.get('v') || '').toLowerCase();
+  if (view === 'landing' || view === 'home' || view === 'marketing') return 'app-landing';
+  if (view === 'pos' || view === 'mobile' || view === 'terminal') return 'app-mobile';
+  if (view === 'login') return 'app-login';
+  if (view === 'desktop') return 'app-pos';
+
+  const hash = (window.location.hash || '').replace(/^#/, '').toLowerCase();
+  if (
+    hash === 'landing' ||
+    hash.startsWith('por-que') ||
+    hash.startsWith('funcionalidades') ||
+    hash === 'features'
+  ) {
+    return 'app-landing';
+  }
+  if (hash === 'pos' || hash === 'mobile') return 'app-mobile';
+
+  // Demo-first por defecto: terminal POS
+  return 'app-mobile';
+}
+
 export default function App() {
-  // Demo-first: entrar directo a la terminal mobile
-  const [activeTab, setActiveTab] = useState<string>('app-mobile');
+  const [activeTab, setActiveTab] = useState<string>(() => resolveInitialTab());
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const user = authService.getCurrentUser();
-    if (user) {
-      setCurrentUser(user);
-    }
+    if (user) setCurrentUser(user);
   }, []);
+
+  // Scroll a anclas de la landing cuando corresponde
+  useEffect(() => {
+    if (activeTab !== 'app-landing') return;
+    const hash = (window.location.hash || '').replace(/^#/, '');
+    if (!hash) return;
+    const t = window.setTimeout(() => {
+      const el = document.getElementById(hash);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [activeTab]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -52,7 +85,6 @@ export default function App() {
 
   const isMobilePOS = activeTab === 'app-mobile';
 
-  // Terminal mobile a pantalla completa (sin header/footer del shell)
   if (isMobilePOS) {
     return (
       <div className="pos-mobile-shell">
