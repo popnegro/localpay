@@ -203,6 +203,9 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
             </p>
             <p className="text-center text-[10px] text-slate-500 font-bold uppercase mt-0.5">ARS</p>
           </div>
+          <p className="text-[11px] text-slate-500 text-center max-w-[16rem]">
+            QR listo · el cliente escanea y paga
+          </p>
           <p className="text-xs text-slate-400 flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
             Expira en {qrTimer}s · {cajaId}
@@ -362,7 +365,7 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
               ))}
             </div>
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            <div className="pt-1 space-y-2">
               <button
                 type="button"
                 onClick={() => {
@@ -371,10 +374,10 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
                     playTone(740, 0.08);
                   }
                 }}
-                className="min-h-14 bg-emerald-500 text-slate-950 font-black text-sm rounded-2xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/25 active:scale-[0.98]"
+                className="w-full min-h-14 bg-emerald-500 text-slate-950 font-black text-sm rounded-2xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/25 active:scale-[0.98]"
               >
                 <QrCode className="w-5 h-5 shrink-0" />
-                <span>Mostrar QR</span>
+                <span>Generar QR</span>
               </button>
               <button
                 type="button"
@@ -382,10 +385,9 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
                   setStage('scan');
                   playTone(740, 0.08);
                 }}
-                className="min-h-14 bg-slate-900 text-white font-black text-sm rounded-2xl border border-emerald-500/40 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+                className="w-full py-2 text-center text-xs font-semibold text-slate-500 hover:text-emerald-700 underline underline-offset-2 cursor-pointer bg-transparent border-0"
               >
-                <Camera className="w-5 h-5 shrink-0 text-emerald-400" />
-                <span>Escanear</span>
+                Escanear QR
               </button>
             </div>
           </div>
