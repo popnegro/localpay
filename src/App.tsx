@@ -4,7 +4,7 @@ import { LandingView } from './components/reformed/LandingView';
 import { LoginView } from './components/reformed/LoginView';
 import { DashboardView } from './components/reformed/DashboardView';
 import { VercelIntegrationView } from './components/reformed/VercelIntegrationView';
-import { MobileBaselinePOS } from './components/mobile/MobileBaselinePOS';
+import { MobilePOSDemo } from './components/mobile/MobilePOSDemo';
 import { CloudSyncWebhooksTab } from './components/cloud/CloudSyncWebhooksTab';
 import { authService, AuthUser } from './services/authService';
 import { Check } from 'lucide-react';
@@ -56,7 +56,7 @@ export default function App() {
   if (isMobilePOS) {
     return (
       <div className="pos-mobile-shell">
-        <MobileBaselinePOS
+        <MobilePOSDemo
           currentUser={currentUser || demoUser}
           onLogout={handleLogout}
         />
