@@ -146,44 +146,53 @@ export const LandingView: React.FC<LandingViewProps> = ({
         </div>
       </section>
 
-      {/* 3 Pilares */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
-            <Zap className="w-6 h-6" />
-          </div>
-          <h3 className="font-bold text-slate-900 text-base mb-2">Semáforo de Validación</h3>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Indicador ultra claro para el cajero. El radar detecta la transferencia y valida el cobro en pantalla gigante
-            sin que el cliente deba mostrar el comprobante en su teléfono.
+      {/* Funcionalidades del POS */}
+      <section id="funcionalidades" className="scroll-mt-24 space-y-6">
+        <div className="max-w-2xl">
+          <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Producto</span>
+          <h3 className="text-2xl font-bold text-slate-900 mt-1">Qué funcionalidades contiene el POS</h3>
+          <p className="text-sm text-slate-600 mt-2">
+            Terminal mobile-first lista para mostrador: cobro QR, cámara, cierre de caja y validación en pantalla.
           </p>
         </div>
-
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition">
-          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
-            <QrCode className="w-6 h-6" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition">
+            <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4">
+              <Zap className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-slate-900 text-base mb-2">Semáforo de Validación</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Indicador ultra claro para el cajero. El radar detecta la transferencia y valida el cobro en pantalla gigante
+              sin que el cliente deba mostrar el comprobante en su teléfono.
+            </p>
           </div>
-          <h3 className="font-bold text-slate-900 text-base mb-2">QR Autónomo Sin Dependencias</h3>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Generación local en canvas mediante motor criptográfico interno. No depende de servidores caídos de terceros;
-            tu mostrador nunca se queda sin cobrar.
-          </p>
-        </div>
 
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition">
-          <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-4">
-            <ReceiptText className="w-6 h-6" />
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition">
+            <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4">
+              <QrCode className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-slate-900 text-base mb-2">QR Autónomo Sin Dependencias</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Generación local en canvas mediante motor criptográfico interno. No depende de servidores caídos de terceros;
+              tu mostrador nunca se queda sin cobrar.
+            </p>
           </div>
-          <h3 className="font-bold text-slate-900 text-base mb-2">Cierre de Caja y Fiscal</h3>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            Balance instantáneo de turnos, discriminación de clientes vs proveedores con validación de CUIT AFIP y exportación
-            sanitizada sin riesgo de inyecciones CSV.
-          </p>
+
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition">
+            <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center mb-4">
+              <ReceiptText className="w-6 h-6" />
+            </div>
+            <h3 className="font-bold text-slate-900 text-base mb-2">Cierre de Caja y Fiscal</h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Balance instantáneo de turnos, discriminación de clientes vs proveedores con validación de CUIT AFIP y exportación
+              sanitizada sin riesgo de inyecciones CSV.
+            </p>
+          </div>
         </div>
       </section>
 
       {/* Comparativa vs Posnet Tradicional */}
-      <section className="bg-white rounded-3xl p-8 border border-slate-200 shadow-xs">
+      <section id="por-que" className="scroll-mt-24 bg-white rounded-3xl p-8 border border-slate-200 shadow-xs">
         <div className="max-w-2xl mb-6">
           <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Ahorro Directo</span>
           <h3 className="text-2xl font-bold text-slate-900 mt-1">¿Por qué cambiar tu terminal tradicional por LocalPay?</h3>
@@ -224,17 +233,16 @@ export const LandingView: React.FC<LandingViewProps> = ({
         </div>
       </section>
 
-      {/* Formulario de Alta de Comercio (lead.html reformado) */}
+      {/* Formulario de Alta de Comercio */}
       <section className="bg-gradient-to-br from-slate-900 to-blue-950 rounded-3xl p-8 md:p-12 text-white shadow-xl border border-slate-800">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <div className="space-y-4">
             <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">
-              Formulario de Contacto (lead.html reformado)
+              Formulario de Contacto
             </span>
             <h3 className="text-2xl sm:text-3xl font-bold">Sumá tu comercio a LocalPay</h3>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Dejanos los datos de tu negocio para activar tu caja en menos de 10 minutos. Eliminamos el endpoint roto
-              de Formspree y conectamos la recepción de comercios interesados con validación de datos en tiempo real.
+              Dejanos los datos de tu negocio para activar tu caja en menos de 10 minutos.
             </p>
             <div className="flex items-center gap-4 text-xs text-blue-200">
               <span className="flex items-center gap-1.5">
