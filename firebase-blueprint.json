@@ -1,0 +1,77 @@
+{
+  "entities": {
+    "transacciones": {
+      "title": "Transacciones",
+      "description": "Colección de transacciones y cobros POS para sincronización multi-caja en tiempo real",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "codigo": { "type": "string" },
+        "tipo": { "type": "string", "enum": ["ingreso", "egreso"] },
+        "metodo": { "type": "string" },
+        "monto": { "type": "number" },
+        "concepto": { "type": "string" },
+        "hora": { "type": "string" },
+        "fecha": { "type": "string" },
+        "cajero": { "type": "string" },
+        "cajaId": { "type": "string" },
+        "estado": { "type": "string", "enum": ["aprobado", "pendiente", "rechazado"] },
+        "referencia": { "type": "string" },
+        "creadoEn": { "type": "string" }
+      },
+      "required": ["codigo", "tipo", "monto", "cajaId", "estado"]
+    },
+    "cajas": {
+      "title": "Cajas",
+      "description": "Estado operativo, fondos de cambio y balances de terminales de mostrador multi-caja",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "nombre": { "type": "string" },
+        "sucursal": { "type": "string" },
+        "operador": { "type": "string" },
+        "estado": { "type": "string", "enum": ["abierta", "cerrada"] },
+        "fondoInicial": { "type": "number" },
+        "horaApertura": { "type": "string" },
+        "ingresosTotal": { "type": "number" },
+        "egresosTotal": { "type": "number" },
+        "balanceNeto": { "type": "number" },
+        "ultimoUpdate": { "type": "string" }
+      },
+      "required": ["id", "nombre", "estado", "fondoInicial"]
+    },
+    "cierres_caja": {
+      "title": "Cierres de Caja",
+      "description": "Arqueos y cierres Z consolidados con desglose de efectivo vs digital y diferencias de gaveta",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "cajaId": { "type": "string" },
+        "cajero": { "type": "string" },
+        "fecha": { "type": "string" },
+        "horaCierre": { "type": "string" },
+        "fondoInicial": { "type": "number" },
+        "totalEfectivoIngresos": { "type": "number" },
+        "totalEfectivoEgresos": { "type": "number" },
+        "efectivoEsperado": { "type": "number" },
+        "efectivoRealContado": { "type": "number" },
+        "diferenciaEfectivo": { "type": "number" },
+        "totalDigital": { "type": "number" },
+        "totalFacturado": { "type": "number" },
+        "totalOperaciones": { "type": "number" },
+        "observaciones": { "type": "string" }
+      },
+      "required": ["id", "cajaId", "cajero", "fecha", "totalFacturado"]
+    },
+    "transactions": {
+      "title": "Transactions (Legacy Alias)",
+      "description": "Alias para retrocompatibilidad",
+      "type": "object",
+      "properties": {
+        "codigo": { "type": "string" },
+        "monto": { "type": "number" }
+      }
+    }
+  },
+  "firestoreRules": "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /{document=**} {\n      allow read, write: if true;\n    }\n  }\n}"
+}

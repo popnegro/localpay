@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Colección de transacciones de cobro POS
+    match /transacciones/{transaccionId} {
+      allow read, write: if true;
+    }
+
+    // Colección de estado y balances de cajas terminales
+    match /cajas/{cajaId} {
+      allow read, write: if true;
+    }
+
+    // Colección de cierres de caja y arqueos Z consolidados
+    match /cierres_caja/{cierreId} {
+      allow read, write: if true;
+    }
+
+    // Compatibilidad y colecciones auxiliares
+    match /transactions/{transactionId} {
+      allow read, write: if true;
+    }
+
+    match /entities/{entityId} {
+      allow read, write: if true;
+    }
+
+    match /webhook_events/{eventId} {
+      allow read, write: if true;
+    }
+  }
+}
