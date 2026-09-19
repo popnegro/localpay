@@ -10,6 +10,87 @@ body,
   background: #020617;
 }
 
+/* Demo-first: terminal POS ocupa toda la ventana del mobile */
+.pos-mobile-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  height: 100dvh;
+  width: 100vw;
+  max-width: 100vw;
+  overflow: hidden;
+  background: #020617;
+}
+
+.pos-mobile-shell > div {
+  height: 100% !important;
+  max-height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Ocultar barra de controles / workspace de demo */
+.pos-mobile-shell > div > div:first-child {
+  display: none !important;
+}
+
+/* Grid interno a una sola columna full height */
+.pos-mobile-shell > div > div:last-child {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Ocultar columna roadmap (desktop) */
+.pos-mobile-shell [class*='lg:col-span-5'] {
+  display: none !important;
+}
+
+/* Columna del teléfono a 100% */
+.pos-mobile-shell [class*='lg:col-span-7'],
+.pos-mobile-shell [class*='justify-center'] {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Quitar marco tipo iPhone/Pixel: el contenido llena la ventana */
+.pos-mobile-shell [class*='max-w-[393px]'],
+.pos-mobile-shell [class*='max-w-[412px]'],
+.pos-mobile-shell [class*='max-w-[400px]'],
+.pos-mobile-shell [class*='aspect-[9/19.5]'] {
+  max-width: 100% !important;
+  width: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+  height: 100% !important;
+  aspect-ratio: auto !important;
+  border-radius: 0 !important;
+  border-width: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+/* Pantalla interna del POS */
+.pos-mobile-shell [class*='rounded-[42px]'],
+.pos-mobile-shell [class*='rounded-[32px]'] {
+  border-radius: 0 !important;
+  min-height: 100% !important;
+  height: 100% !important;
+}
+
 @media print {
   body * {
     visibility: hidden !important;
