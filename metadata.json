@@ -1,6 +1,6 @@
 {
-  "name": "LocalPay Auditoría Técnica",
-  "description": "Baseline Mobile-First POS de mostrador, persistencia en Firestore con sincronización multi-caja en tiempo real y endpoints Express para webhooks de Mercado Pago, MODO y Cuenta DNI.",
+  "name": "LocalPay",
+  "description": "Terminal POS Mobile-First de mostrador, persistencia en Firestore con sincronización multi-caja en tiempo real y endpoints para webhooks de Mercado Pago, MODO y Cuenta DNI.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
