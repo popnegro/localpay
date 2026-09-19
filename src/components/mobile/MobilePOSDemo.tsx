@@ -8,6 +8,10 @@ import {
   Wifi,
   WifiOff,
   Clock,
+  Zap,
+  Receipt,
+  Users,
+  Wallet,
 } from 'lucide-react';
 import { dbService, Transaction, NetworkSyncState } from '../../services/dbService';
 import type { AuthUser } from '../../services/authService';
@@ -22,6 +26,7 @@ type Stage = 'pos' | 'qr' | 'scan' | 'semaforo';
 
 export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
   const [stage, setStage] = useState<Stage>('pos');
+  const [posTab, setPosTab] = useState<'cobrar' | 'movimientos' | 'entidades' | 'caja'>('cobrar');
   const [numpadValue, setNumpadValue] = useState('4500');
   const [concepto] = useState('Venta Mostrador');
   const [soundEnabled] = useState(true);
@@ -279,6 +284,10 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
     );
   }
 
+  const totalHoy = transactions
+    .filter((tx) => tx.estado === 'aprobado')
+    .reduce((s, tx) => s + (tx.tipo === 'egreso' ? -tx.monto : tx.monto), 0);
+
   return (
     <div className="h-full w-full min-h-0 flex flex-col bg-slate-100 text-slate-900 overflow-hidden">
       <header className="pos-safe-top px-4 pb-2.5 bg-slate-900 text-white flex items-center justify-between text-xs shrink-0">
@@ -311,96 +320,225 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
       </header>
 
       <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
-        <div className="px-4 pt-3 pb-2 space-y-3 max-w-md mx-auto w-full">
-          <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm text-center sm:text-left">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Importe a cobrar</p>
-            <p className="text-[2.5rem] leading-none font-black font-mono text-slate-950 tracking-tight mt-1 break-all">
-              ${Number(numpadValue || 0).toLocaleString('es-AR')}
-            </p>
-            <p className="text-xs text-slate-500 mt-2">
-              {concepto} · {currentUser?.name || 'Cajero'}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-3 gap-2">
-            {[1000, 2000, 5000].map((n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => quickAdd(n)}
-                className="min-h-11 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 cursor-pointer active:bg-slate-50 active:scale-[0.98]"
-              >
-                +${n.toLocaleString('es-AR')}
-              </button>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-3 gap-2">
-            {keys.map((k) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => press(k)}
-                className={`min-h-14 rounded-2xl font-black text-xl cursor-pointer active:scale-[0.96] transition select-none ${
-                  k === 'DEL' || k === 'CLR'
-                    ? 'bg-slate-200 text-slate-700 text-base'
-                    : 'bg-white border border-slate-200 text-slate-900 shadow-sm'
-                }`}
-              >
-                {k === 'DEL' ? '⌫' : k === 'CLR' ? 'C' : k}
-              </button>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => {
-                if ((parseInt(numpadValue, 10) || 0) > 0) {
-                  setStage('qr');
-                  playTone(740, 0.08);
-                }
-              }}
-              className="min-h-14 bg-emerald-500 text-slate-950 font-black text-sm rounded-2xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/25 active:scale-[0.98]"
-            >
-              <QrCode className="w-5 h-5 shrink-0" />
-              <span>Mostrar QR</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStage('scan');
-                playTone(740, 0.08);
-              }}
-              className="min-h-14 bg-slate-900 text-white font-black text-sm rounded-2xl border border-emerald-500/40 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
-            >
-              <Camera className="w-5 h-5 shrink-0 text-emerald-400" />
-              <span>Escanear</span>
-            </button>
-          </div>
-
-          {transactions.slice(0, 3).length > 0 && (
-            <div className="pt-1 pb-2 space-y-1.5">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-0.5">
-                Últimos cobros
+        {posTab === 'cobrar' && (
+          <div className="px-4 pt-3 pb-2 space-y-3 max-w-md mx-auto w-full">
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-4 shadow-sm text-center sm:text-left">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Importe a cobrar</p>
+              <p className="text-[2.5rem] leading-none font-black font-mono text-slate-950 tracking-tight mt-1 break-all">
+                ${Number(numpadValue || 0).toLocaleString('es-AR')}
               </p>
-              {transactions.slice(0, 3).map((tx) => (
+              <p className="text-xs text-slate-500 mt-2">
+                {concepto} · {currentUser?.name || 'Cajero'}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {[1000, 2000, 5000].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => quickAdd(n)}
+                  className="min-h-11 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-700 cursor-pointer active:bg-slate-50 active:scale-[0.98]"
+                >
+                  +${n.toLocaleString('es-AR')}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              {keys.map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => press(k)}
+                  className={`min-h-14 rounded-2xl font-black text-xl cursor-pointer active:scale-[0.96] transition select-none ${
+                    k === 'DEL' || k === 'CLR'
+                      ? 'bg-slate-200 text-slate-700 text-base'
+                      : 'bg-white border border-slate-200 text-slate-900 shadow-sm'
+                  }`}
+                >
+                  {k === 'DEL' ? '⌫' : k === 'CLR' ? 'C' : k}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  if ((parseInt(numpadValue, 10) || 0) > 0) {
+                    setStage('qr');
+                    playTone(740, 0.08);
+                  }
+                }}
+                className="min-h-14 bg-emerald-500 text-slate-950 font-black text-sm rounded-2xl flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/25 active:scale-[0.98]"
+              >
+                <QrCode className="w-5 h-5 shrink-0" />
+                <span>Mostrar QR</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setStage('scan');
+                  playTone(740, 0.08);
+                }}
+                className="min-h-14 bg-slate-900 text-white font-black text-sm rounded-2xl border border-emerald-500/40 flex items-center justify-center gap-2 cursor-pointer active:scale-[0.98]"
+              >
+                <Camera className="w-5 h-5 shrink-0 text-emerald-400" />
+                <span>Escanear</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {posTab === 'movimientos' && (
+          <div className="px-4 pt-3 pb-2 space-y-2 max-w-md mx-auto w-full">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Movimientos del turno</p>
+            {transactions.length === 0 ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center text-sm text-slate-500">
+                Todavía no hay cobros en este turno.
+              </div>
+            ) : (
+              transactions.slice(0, 20).map((tx) => (
                 <div
                   key={tx.id}
-                  className="flex justify-between items-center gap-2 text-xs bg-white rounded-xl border border-slate-200 px-3 py-2.5"
+                  className="flex justify-between items-center gap-2 text-xs bg-white rounded-xl border border-slate-200 px-3 py-3"
                 >
-                  <span className="text-slate-600 truncate min-w-0">{tx.concepto}</span>
-                  <span className="font-mono font-bold text-emerald-600 shrink-0">
-                    +${tx.monto.toLocaleString('es-AR')}
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-800 truncate">{tx.concepto}</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">
+                      {tx.hora} · {tx.metodo}
+                    </p>
+                  </div>
+                  <span
+                    className={`font-mono font-bold shrink-0 ${
+                      tx.tipo === 'egreso' ? 'text-rose-600' : 'text-emerald-600'
+                    }`}
+                  >
+                    {tx.tipo === 'egreso' ? '-' : '+'}${tx.monto.toLocaleString('es-AR')}
                   </span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {posTab === 'entidades' && (
+          <div className="px-4 pt-3 pb-2 space-y-3 max-w-md mx-auto w-full">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Clientes frecuentes</p>
+            <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
+              {[
+                { nombre: 'Consumidor final', doc: '—', nota: 'Mostrador' },
+                { nombre: 'Autoservicio Norte', doc: '30-71234567-8', nota: 'Cuenta corriente' },
+                { nombre: 'Panadería El Sol', doc: '20-30111222-3', nota: 'Mayorista' },
+              ].map((c) => (
+                <div key={c.nombre} className="px-4 py-3 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-900 truncate">{c.nombre}</p>
+                    <p className="text-[10px] text-slate-500">
+                      {c.doc} · {c.nota}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
-          )}
-        </div>
+            <p className="text-[10px] text-slate-400 text-center">Demo · datos mock</p>
+          </div>
+        )}
+
+        {posTab === 'caja' && (
+          <div className="px-4 pt-3 pb-2 space-y-3 max-w-md mx-auto w-full">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Estado de caja</p>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="bg-white rounded-2xl border border-slate-200 p-3">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Cobros</span>
+                <p className="text-lg font-black text-slate-900">{transactions.length}</p>
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-200 p-3">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Balance</span>
+                <p className="text-lg font-black text-emerald-600">
+                  ${totalHoy.toLocaleString('es-AR')}
+                </p>
+              </div>
+            </div>
+            <div className="bg-slate-900 text-white rounded-2xl p-4">
+              <p className="text-[10px] font-bold text-slate-400 uppercase">Caja abierta</p>
+              <p className="text-sm font-bold mt-1">{cajaId}</p>
+              <p className="text-xs text-slate-400 mt-1">{currentUser?.name || 'Cajero'} · turno demo</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                playTone(500, 0.05);
+                setPosTab('cobrar');
+              }}
+              className="w-full min-h-12 rounded-2xl bg-emerald-500 text-slate-950 font-black text-sm cursor-pointer active:scale-[0.98]"
+            >
+              Volver a cobrar
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="pos-safe-bottom shrink-0" />
+      <nav className="bg-white border-t border-slate-200/80 shrink-0 pos-safe-bottom">
+        <div className="flex items-stretch justify-around max-w-md mx-auto w-full px-1 pt-1.5 pb-1 text-[10px] font-bold">
+          <button
+            type="button"
+            onClick={() => {
+              setPosTab('cobrar');
+              playTone(500, 0.03);
+            }}
+            className={`flex flex-1 flex-col items-center justify-center gap-0.5 min-h-12 rounded-xl transition cursor-pointer ${
+              posTab === 'cobrar' ? 'text-emerald-600' : 'text-slate-400'
+            }`}
+          >
+            <Zap className={`w-5 h-5 ${posTab === 'cobrar' ? 'stroke-[2.5]' : ''}`} />
+            <span className={posTab === 'cobrar' ? 'font-black' : ''}>Cobrar</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setPosTab('movimientos');
+              playTone(500, 0.03);
+            }}
+            className={`flex flex-1 flex-col items-center justify-center gap-0.5 min-h-12 rounded-xl transition cursor-pointer ${
+              posTab === 'movimientos' ? 'text-blue-600' : 'text-slate-400'
+            }`}
+          >
+            <Receipt className={`w-5 h-5 ${posTab === 'movimientos' ? 'stroke-[2.5]' : ''}`} />
+            <span className={posTab === 'movimientos' ? 'font-black' : ''}>Movimientos</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setPosTab('entidades');
+              playTone(500, 0.03);
+            }}
+            className={`flex flex-1 flex-col items-center justify-center gap-0.5 min-h-12 rounded-xl transition cursor-pointer ${
+              posTab === 'entidades' ? 'text-indigo-600' : 'text-slate-400'
+            }`}
+          >
+            <Users className={`w-5 h-5 ${posTab === 'entidades' ? 'stroke-[2.5]' : ''}`} />
+            <span className={posTab === 'entidades' ? 'font-black' : ''}>Clientes</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setPosTab('caja');
+              playTone(500, 0.03);
+            }}
+            className={`flex flex-1 flex-col items-center justify-center gap-0.5 min-h-12 rounded-xl transition cursor-pointer ${
+              posTab === 'caja' ? 'text-purple-600' : 'text-slate-400'
+            }`}
+          >
+            <Wallet className={`w-5 h-5 ${posTab === 'caja' ? 'stroke-[2.5]' : ''}`} />
+            <span className={posTab === 'caja' ? 'font-black' : ''}>Caja</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 };
