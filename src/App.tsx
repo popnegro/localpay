@@ -55,7 +55,7 @@ export default function App() {
   // Terminal mobile a pantalla completa (sin header/footer del shell)
   if (isMobilePOS) {
     return (
-      <div className="fixed inset-0 z-50 bg-slate-950 overflow-hidden">
+      <div className="pos-mobile-shell">
         <MobileBaselinePOS
           currentUser={currentUser || demoUser}
           onLogout={handleLogout}
