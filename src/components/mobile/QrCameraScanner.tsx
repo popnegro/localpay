@@ -10,11 +10,27 @@ export interface QrScanResult {
 interface QrCameraScannerProps {
   onScan: (result: QrScanResult) => void;
   onClose: () => void;
-  /** Prefer rear camera on phones */
+  /** Prefer rear (environment) or front (user) */
   facingMode?: 'environment' | 'user';
 }
 
 const REGION_ID = 'localpay-qr-reader';
+
+async function pickCameraId(facing: 'environment' | 'user'): Promise<string | { facingMode: string }> {
+  try {
+    const cams = await Html5Qrcode.getCameras();
+    if (!cams.length) return { facingMode: facing };
+    const label = (s: string) => s.toLowerCase();
+    const front = cams.find((c) => /front|user|facing\s*front|selfie/i.test(label(c.label)));
+    const back = cams.find((c) => /back|rear|environment|facing\s*back/i.test(label(c.label)));
+    if (facing === 'user') {
+      return front?.id || (cams.length > 1 ? cams[1].id : cams[0].id);
+    }
+    return back?.id || cams[0].id;
+  } catch {
+    return { facingMode: facing };
+  }
+}
 
 export const QrCameraScanner: React.FC<QrCameraScannerProps> = ({
   onScan,
@@ -43,10 +59,17 @@ export const QrCameraScanner: React.FC<QrCameraScannerProps> = ({
       setStarting(true);
       setError(null);
       try {
+        try {
+          if (scanner.isScanning) await scanner.stop();
+        } catch {
+          /* ignore */
+        }
+
+        const cameraConfig = await pickCameraId(facing);
         await scanner.start(
-          { facingMode: facing },
+          cameraConfig,
           {
-            fps: 12,
+            fps: 15,
             qrbox: (viewW, viewH) => {
               const side = Math.min(Math.floor(viewW * 0.72), Math.floor(viewH * 0.55), 280);
               return { width: side, height: side };
@@ -65,22 +88,31 @@ export const QrCameraScanner: React.FC<QrCameraScannerProps> = ({
               });
           },
           () => {
-            /* frame without code — ignore */
+            /* no code in frame */
           }
         );
+
+        const video = document.querySelector(`#${REGION_ID} video`) as HTMLVideoElement | null;
+        if (video) {
+          video.style.transform = facing === 'user' ? 'scaleX(-1)' : 'none';
+          video.style.objectFit = 'cover';
+          video.style.width = '100%';
+          video.style.height = '100%';
+        }
+
         if (!cancelled) setStarting(false);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         if (!cancelled) {
           setStarting(false);
           if (/NotAllowedError|Permission/i.test(msg)) {
-            setError('Permiso de cámara denegado. Activá el acceso en el navegador.');
-          } else if (/NotFoundError|DevicesNotFound/i.test(msg)) {
-            setError('No se encontró una cámara disponible en este dispositivo.');
-          } else if (/Secure|https|insecure/i.test(msg)) {
-            setError('La cámara requiere HTTPS (o localhost). Abrí la demo en un origen seguro.');
+            setError('Permiso de cámara denegado. Activá el acceso en el navegador o en Ajustes del sistema.');
+          } else if (/NotFoundError|DevicesNotFound|no camera/i.test(msg)) {
+            setError('No se encontró cámara. Probá con otro dispositivo o cambiá de cámara.');
+          } else if (/NotReadableError|TrackStartError|in use/i.test(msg)) {
+            setError('La cámara está en uso por otra app. Cerrala e intentá de nuevo.');
           } else {
-            setError(`No se pudo iniciar la cámara: ${msg}`);
+            setError(msg || 'No se pudo iniciar la cámara.');
           }
         }
       }
@@ -100,7 +132,13 @@ export const QrCameraScanner: React.FC<QrCameraScannerProps> = ({
     };
   }, [facing, retryKey]);
 
-  const toggleFacing = () => {
+  const toggleFacing = async () => {
+    const s = scannerRef.current;
+    try {
+      if (s?.isScanning) await s.stop();
+    } catch {
+      /* ignore */
+    }
     setFacing((f) => (f === 'environment' ? 'user' : 'environment'));
   };
 
@@ -110,7 +148,7 @@ export const QrCameraScanner: React.FC<QrCameraScannerProps> = ({
         <div className="flex items-center gap-2">
           <Camera className="w-4 h-4 text-emerald-400" />
           <span className="text-xs font-black uppercase tracking-wider text-slate-300">
-            Escanear QR
+            Escanear QR · {facing === 'user' ? 'Frontal' : 'Trasera'}
           </span>
         </div>
         <button
@@ -129,7 +167,9 @@ export const QrCameraScanner: React.FC<QrCameraScannerProps> = ({
         {starting && !error && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-slate-950/80 z-10">
             <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-            <p className="text-xs font-bold text-slate-300">Iniciando cámara…</p>
+            <p className="text-xs font-bold text-slate-300">
+              Iniciando cámara {facing === 'user' ? 'frontal' : 'trasera'}…
+            </p>
           </div>
         )}
 
@@ -159,21 +199,23 @@ export const QrCameraScanner: React.FC<QrCameraScannerProps> = ({
 
       <div className="px-4 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-2 shrink-0">
         <p className="text-[11px] text-slate-400 text-center font-medium">
-          Apuntá al QR del cliente o de la billetera. Demo mock: cualquier QR válido confirma el cobro.
+          {facing === 'user'
+            ? 'Cámara frontal activa (espejada). Ideal para escanear el QR del cliente frente a vos.'
+            : 'Cámara trasera. Usá “Cambiar cámara” para pasar a la frontal.'}
         </p>
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={toggleFacing}
-            className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center justify-center gap-2 cursor-pointer"
+            onClick={() => void toggleFacing()}
+            className="flex-1 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold flex items-center justify-center gap-2 cursor-pointer min-h-12"
           >
             <SwitchCamera className="w-4 h-4 text-emerald-400" />
-            Cambiar cámara
+            {facing === 'user' ? 'Usar trasera' : 'Usar frontal'}
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold cursor-pointer"
+            className="flex-1 py-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-bold cursor-pointer min-h-12"
           >
             Cancelar
           </button>
