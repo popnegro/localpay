@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,18 +28,30 @@ jobs:
         run: npm install --legacy-peer-deps --no-audit --no-fund
 
       - name: Build static demo
-        # relative base works under /localpay/ and repo root
         run: npx vite build --base=./
 
-      - name: SPA fallback
-        run: cp dist/index.html dist/404.html
+      - name: SPA fallback + nojekyll
+        run: |
+          cp dist/index.html dist/404.html
+          touch dist/.nojekyll
 
+      # Publica el build limpio en la rama gh-pages (orphan)
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          force_orphan: true
+          user_name: github-actions[bot]
+          user_email: github-actions[bot]@users.noreply.github.com
+
+      # También intenta el flujo oficial de Pages (si Source = GitHub Actions)
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
 
-  deploy:
-    needs: build
+  deploy-actions-pages:
+    needs: build-and-deploy
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -47,3 +59,4 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
