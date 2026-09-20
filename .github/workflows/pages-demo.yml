@@ -28,7 +28,8 @@ jobs:
         run: npm install --legacy-peer-deps --no-audit --no-fund
 
       - name: Build static demo
-        run: npx vite build --base=/localpay/
+        # relative base works under /localpay/ and repo root
+        run: npx vite build --base=./
 
       - name: SPA fallback
         run: cp dist/index.html dist/404.html
