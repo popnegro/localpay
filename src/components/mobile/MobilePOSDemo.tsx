@@ -163,69 +163,101 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
   const aprobar = useCallback(
     (metodo: string) => {
       if (simulando) return;
-      setSimulando(true);
       const monto = parseInt(numpadValue, 10) || 0;
-      const tx = dbService.addTransaction({
-        tipo: 'ingreso',
-        concepto,
-        monto,
-        metodo,
-        estado: 'aprobado',
-        cajero: currentUser?.name || 'Cajero',
-      });
-      const cobro = { id: tx.id, monto, hora: tx.hora, metodo, concepto };
-      setUltimoCobro(cobro);
-      setSimulando(false);
-      setStage('semaforo');
-      setTransactions(dbService.getTransactions());
-      playTone(1050, 0.15);
-      setTimeout(() => openReceipt(cobro), 400);
+      if (monto <= 0) return;
+      setSimulando(true);
+      playTone(700, 0.06);
+      const delay = metodo.toLowerCase().includes('mercado')
+        ? 900
+        : metodo.toLowerCase().includes('plex')
+          ? 700
+          : 350;
+      window.setTimeout(() => {
+        const tx = dbService.addTransaction({
+          tipo: 'ingreso',
+          concepto: `${concepto} · ${metodo}`,
+          monto,
+          metodo,
+          estado: 'aprobado',
+          cajero: currentUser?.name || 'Cajero',
+        });
+        const cobro = {
+          id: tx.id,
+          monto,
+          hora: tx.hora,
+          metodo: metodo.includes('Mercado')
+            ? 'Mercado Pago (QR) · simulado'
+            : metodo.includes('Plex')
+              ? 'Plex (QR) · simulado'
+              : metodo,
+          concepto,
+        };
+        setUltimoCobro(cobro);
+        setSimulando(false);
+        setStage('semaforo');
+        setTransactions(dbService.getTransactions());
+        playTone(1050, 0.15);
+        setTimeout(() => openReceipt(cobro), 500);
+      }, delay);
     },
     [simulando, numpadValue, concepto, currentUser?.name, openReceipt]
   );
 
-  const onScan = useCallback(
+  const cobrarEfectivo = useCallback(() => {
+    const monto = parseInt(numpadValue, 10) || 0;
+    if (monto <= 0 || simulando) return;
+    aprobar('Efectivo');
+  }, [numpadValue, simulando, aprobar]);
+
+  const onScanProveedor = useCallback(
     (result: QrScanResult) => {
-      const raw = result.text || '';
+      const raw = (result.text || '').trim();
       playTone(880, 0.1);
-      let monto = parseInt(numpadValue, 10) || 0;
-      let metodo = 'QR Cámara (Escaneo)';
+      let monto = parseInt(egresoMonto.replace(/\D/g, ''), 10) || 0;
+      let proveedor = egresoConcepto.trim() || 'Pago a proveedor';
       try {
-        if (raw.includes('amount=') || raw.startsWith('localpay://')) {
+        if (raw.includes('amount=') || raw.includes('monto=')) {
           const query = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : raw;
-          const a = new URLSearchParams(query).get('amount');
-          if (a && !Number.isNaN(Number(a))) monto = Number(a);
-          metodo = 'QR Interoperable (Escaneo)';
+          const params = new URLSearchParams(query);
+          const a = params.get('amount') || params.get('monto');
+          if (a && !Number.isNaN(Number(a))) monto = Math.round(Number(a));
+          const n = params.get('nombre') || params.get('name') || params.get('merchant');
+          if (n) proveedor = decodeURIComponent(n);
         } else if (/^\d+(\.\d+)?$/.test(raw)) {
           monto = Math.round(Number(raw));
         }
       } catch {
-        /* numpad */
+        /* form */
       }
-      if (monto <= 0) monto = parseInt(numpadValue, 10) || 4500;
-      setNumpadValue(String(monto));
+      if (monto <= 0) {
+        setStage('pos');
+        setPosTab('caja');
+        playTone(300, 0.08);
+        return;
+      }
       const tx = dbService.addTransaction({
-        tipo: 'ingreso',
-        concepto: 'Cobro QR escaneado',
+        tipo: 'egreso',
+        concepto: proveedor,
         monto,
-        metodo: 'QR Interoperable',
+        metodo: 'QR Proveedor',
         estado: 'aprobado',
         cajero: currentUser?.name || 'Cajero',
       });
-      const cobro = {
+      setEgresoMonto('');
+      setTransactions(dbService.getTransactions());
+      setPosTab('caja');
+      setCajaFiltro('egreso');
+      setUltimoCobro({
         id: tx.id,
         monto,
         hora: tx.hora,
-        metodo: `${metodo}`,
-        concepto: 'Cobro QR escaneado',
-      };
-      setUltimoCobro(cobro);
+        metodo: 'Egreso · QR Proveedor',
+        concepto: proveedor,
+      });
       setStage('semaforo');
-      setTransactions(dbService.getTransactions());
-      playTone(1050, 0.15);
-      setTimeout(() => openReceipt(cobro), 400);
+      playTone(600, 0.12);
     },
-    [numpadValue, currentUser?.name, openReceipt]
+    [egresoMonto, egresoConcepto, currentUser?.name]
   );
 
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'CLR', '0', 'DEL'];
@@ -338,7 +370,7 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
       `💰 Balance: $${balance.toLocaleString('es-AR')}\n` +
       `--------------------------------\n` +
       `Movimientos: ${transactions.length}\n` +
-      `\n_CSV descargado desde la terminal (compartilo desde archivos)._\n` +
+      `\n_CSV descargado desde la terminal._\n` +
       `Detalle:\n` +
       transactions
         .slice(0, 15)
@@ -354,7 +386,14 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
   if (stage === 'scan') {
     return (
       <div className="h-full w-full min-h-0 flex flex-col bg-slate-950 overflow-hidden">
-        <QrCameraScanner onScan={onScan} onClose={() => setStage('pos')} facingMode="user" />
+        <QrCameraScanner
+          onScan={onScanProveedor}
+          onClose={() => {
+            setStage('pos');
+            setPosTab('caja');
+          }}
+          facingMode="user"
+        />
       </div>
     );
   }
@@ -378,13 +417,16 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
           <p className="text-xs text-amber-300/90">Expira en {qrTimer}s · {cajaId}</p>
         </div>
         <div className="px-4 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-2 shrink-0">
-          <button type="button" onClick={() => setStage('scan')} className="w-full min-h-12 rounded-2xl bg-slate-800 text-emerald-300 font-bold text-sm flex items-center justify-center gap-2 cursor-pointer">
-            <Camera className="w-4 h-4" /> Escanear QR del cliente
-          </button>
-          <div className="grid grid-cols-3 gap-2">
-            <button type="button" disabled={simulando} onClick={() => aprobar('Mercado Pago')} className="min-h-12 rounded-xl bg-blue-600 font-bold text-xs cursor-pointer disabled:opacity-50">Mercado Pago</button>
-            <button type="button" disabled={simulando} onClick={() => aprobar('Plex')} className="min-h-12 rounded-xl bg-violet-600 font-bold text-xs cursor-pointer disabled:opacity-50">Plex</button>
-            <button type="button" disabled={simulando} onClick={() => aprobar('Efectivo')} className="min-h-12 rounded-xl bg-emerald-600 font-bold text-xs cursor-pointer disabled:opacity-50">Efectivo</button>
+          <p className="text-[10px] text-center text-slate-400 font-medium">
+            {simulando ? 'Esperando confirmación del proveedor…' : 'Simulá el webhook de aprobación (demo)'}
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" disabled={simulando} onClick={() => aprobar('Mercado Pago')} className="min-h-12 rounded-xl bg-blue-600 font-bold text-xs cursor-pointer disabled:opacity-50 disabled:animate-pulse">
+              {simulando ? '…' : 'Simular MP ✓'}
+            </button>
+            <button type="button" disabled={simulando} onClick={() => aprobar('Plex')} className="min-h-12 rounded-xl bg-violet-600 font-bold text-xs cursor-pointer disabled:opacity-50 disabled:animate-pulse">
+              {simulando ? '…' : 'Simular Plex ✓'}
+            </button>
           </div>
         </div>
       </div>
@@ -392,11 +434,14 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
   }
 
   if (stage === 'semaforo' && ultimoCobro) {
+    const esEgreso = ultimoCobro.metodo.includes('Egreso');
     return (
       <>
         <div className="h-full w-full min-h-0 flex flex-col bg-emerald-500 text-slate-950 overflow-hidden">
           <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6">
-            <span className="px-4 py-1.5 rounded-full bg-slate-950 text-emerald-400 text-[11px] font-black uppercase tracking-wider">Pago aprobado</span>
+            <span className="px-4 py-1.5 rounded-full bg-slate-950 text-emerald-400 text-[11px] font-black uppercase tracking-wider">
+              {esEgreso ? 'Egreso registrado' : 'Pago aprobado'}
+            </span>
             <div className="w-20 h-20 rounded-full bg-slate-950 flex items-center justify-center border-4 border-slate-800">
               <Check className="w-10 h-10 text-emerald-400" strokeWidth={3} />
             </div>
@@ -405,16 +450,36 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
             <p className="text-xs text-slate-900/60 font-mono">{ultimoCobro.id} · {ultimoCobro.hora}</p>
           </div>
           <div className="px-4 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-2">
-            <button type="button" onClick={() => ultimoCobro && openReceipt(ultimoCobro)} className="w-full min-h-12 rounded-2xl bg-white text-slate-950 font-bold text-sm flex items-center justify-center gap-2 cursor-pointer">
-              <MessageCircle className="w-4 h-4 text-emerald-600" /> Enviar ticket por WhatsApp
-            </button>
-            <button type="button" onClick={() => { setStage('pos'); setNumpadValue('0'); setShowReceipt(false); }} className="w-full min-h-12 rounded-2xl bg-slate-950 text-white font-bold text-sm cursor-pointer">
-              Nuevo cobro
+            {!esEgreso && (
+              <button type="button" onClick={() => openReceipt(ultimoCobro)} className="w-full min-h-12 rounded-2xl bg-white text-slate-950 font-bold text-sm flex items-center justify-center gap-2 cursor-pointer">
+                <MessageCircle className="w-4 h-4 text-emerald-600" /> Enviar ticket por WhatsApp
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setStage('pos');
+                setNumpadValue('0');
+                setShowReceipt(false);
+                if (esEgreso) setPosTab('caja');
+              }}
+              className="w-full min-h-12 rounded-2xl bg-slate-950 text-white font-bold text-sm cursor-pointer"
+            >
+              {esEgreso ? 'Volver a caja' : 'Nuevo cobro'}
             </button>
           </div>
         </div>
         {showReceipt && receiptData && (
-          <DigitalReceiptModal isOpen={showReceipt} onClose={() => setShowReceipt(false)} receiptData={receiptData} onNewSale={() => { setShowReceipt(false); setStage('pos'); setNumpadValue('0'); }} />
+          <DigitalReceiptModal
+            isOpen={showReceipt}
+            onClose={() => setShowReceipt(false)}
+            receiptData={receiptData}
+            onNewSale={() => {
+              setShowReceipt(false);
+              setStage('pos');
+              setNumpadValue('0');
+            }}
+          />
         )}
       </>
     );
@@ -462,9 +527,12 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
             <button type="button" onClick={() => { if ((parseInt(numpadValue, 10) || 0) > 0) { setStage('qr'); playTone(600, 0.05); } }} className="w-full min-h-14 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-base flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/30 cursor-pointer">
               <QrCode className="w-5 h-5" /> Generar QR
             </button>
-            <button type="button" onClick={() => { setStage('scan'); playTone(500, 0.03); }} className="w-full text-center text-sm font-semibold text-slate-500 underline underline-offset-2 py-2 cursor-pointer">
-              Escanear QR
-            </button>
+            <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 text-center">Cobro en efectivo</p>
+              <button type="button" disabled={simulando || (parseInt(numpadValue, 10) || 0) <= 0} onClick={() => cobrarEfectivo()} className="w-full min-h-12 rounded-xl bg-slate-900 text-white font-bold text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40">
+                Registrar ${(parseInt(numpadValue, 10) || 0).toLocaleString('es-AR')} en efectivo
+              </button>
+            </div>
           </div>
         )}
 
@@ -500,7 +568,7 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
               <input className="w-full min-h-11 px-3 rounded-xl border border-slate-200 text-sm" placeholder="Nombre / razón social" value={clienteForm.nombre} onChange={(e) => setClienteForm((f) => ({ ...f, nombre: e.target.value }))} />
               <input className="w-full min-h-11 px-3 rounded-xl border border-slate-200 text-sm" placeholder="CUIT / DNI" value={clienteForm.doc} onChange={(e) => setClienteForm((f) => ({ ...f, doc: e.target.value }))} />
               <input className="w-full min-h-11 px-3 rounded-xl border border-slate-200 text-sm" placeholder="WhatsApp (sin +54)" value={clienteForm.telefono} onChange={(e) => setClienteForm((f) => ({ ...f, telefono: e.target.value }))} />
-              <input className="w-full min-h-11 px-3 rounded-xl border border-slate-200 text-sm" placeholder="Nota (mayorista, CC…)" value={clienteForm.nota} onChange={(e) => setClienteForm((f) => ({ ...f, nota: e.target.value }))} />
+              <input className="w-full min-h-11 px-3 rounded-xl border border-slate-200 text-sm" placeholder="Nota" value={clienteForm.nota} onChange={(e) => setClienteForm((f) => ({ ...f, nota: e.target.value }))} />
               <button type="button" onClick={saveClienteForm} className="w-full min-h-11 rounded-xl bg-indigo-600 text-white text-sm font-bold cursor-pointer">{editingCliente ? 'Guardar cambios' : 'Crear cliente'}</button>
             </div>
             <div className="bg-white rounded-2xl border border-slate-200 divide-y divide-slate-100 overflow-hidden">
@@ -548,8 +616,12 @@ export const MobilePOSDemo: React.FC<Props> = ({ currentUser, onLogout }) => {
             <div className="bg-white rounded-2xl border border-slate-200 p-3 space-y-2">
               <p className="text-[11px] font-black text-slate-700">Registrar egreso</p>
               <input className="w-full min-h-11 px-3 rounded-xl border border-slate-200 text-sm" placeholder="Monto" inputMode="numeric" value={egresoMonto} onChange={(e) => setEgresoMonto(e.target.value)} />
-              <input className="w-full min-h-11 px-3 rounded-xl border border-slate-200 text-sm" placeholder="Concepto" value={egresoConcepto} onChange={(e) => setEgresoConcepto(e.target.value)} />
+              <input className="w-full min-h-11 px-3 rounded-xl border border-slate-200 text-sm" placeholder="Concepto / proveedor" value={egresoConcepto} onChange={(e) => setEgresoConcepto(e.target.value)} />
               <button type="button" onClick={registrarEgreso} className="w-full min-h-11 rounded-xl bg-rose-600 text-white text-sm font-bold cursor-pointer">Cargar egreso</button>
+              <button type="button" onClick={() => { setStage('scan'); playTone(500, 0.03); }} className="w-full min-h-11 rounded-xl bg-slate-900 text-white text-sm font-bold flex items-center justify-center gap-2 cursor-pointer">
+                <Camera className="w-4 h-4 text-emerald-400" /> Pagar proveedor (escanear QR)
+              </button>
+              <p className="text-[10px] text-slate-400 text-center">Escaneá el QR del proveedor. Usa monto y concepto de arriba si el QR no trae importe.</p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button type="button" onClick={exportCsvDownload} className="min-h-12 rounded-xl bg-white border border-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer">
